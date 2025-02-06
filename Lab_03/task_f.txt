@@ -1,0 +1,1 @@
+π G1.SID, G2.SID (σ G1.Mark < G2.Mark (ρ G1 (Gradebook) ⟗ G1.CID=G2.CID ∧ G1.SID≠G2.SID ρ G2 (Gradebook)))
