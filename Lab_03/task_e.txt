@@ -1,1 +1,1 @@
-π SID (π SID, CID (Gradebook) ÷ π CID (Courses))
+π SID (π SID, CID (Gradebook) ÷ π CID (σ Class = 1 (Courses)))
