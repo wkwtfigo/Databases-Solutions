@@ -1,0 +1,1 @@
+π SID (σ Class = 1 (Courses ⨝ Gradebook)) ∪ π SID (σ Surname = 'Valdez' (Students))
