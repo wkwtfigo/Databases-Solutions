@@ -1,0 +1,1 @@
+π Name (σ Mark = 'A' ∨ Mark = 'B' (σ Class = 2 (Courses ⨝ Gradebook)) ⨝ Students)
