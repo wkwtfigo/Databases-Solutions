@@ -9,6 +9,7 @@ CREATE TABLE album (
 CREATE TABLE track (
     name CHAR(50) NOT NULL PRIMARY KEY,
     length INT,
+    album_name CHAR(50) NOT NULL,
     FOREIGN KEY (album_name) REFERENCES album(name)
 );
 
