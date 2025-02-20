@@ -1,5 +1,6 @@
-select student.id, student.name
-from student
-join unoverridden on student.id = unoverridden.id
-group by student.id, student.name
-having count(*) >= 2; 
+select s.id, s.name
+from student s
+join takes t on s.id = t.id
+where t.grade = 'F'
+group by s.id, s.name
+having count(*) >= 2;
