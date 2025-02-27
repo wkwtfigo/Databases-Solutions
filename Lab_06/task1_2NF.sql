@@ -4,7 +4,7 @@ create table project (
     project_manager VARCHAR(50),
     project_budget NUMERIC(10,2),
     primary key (project_code)
-)
+);
 
 create table employee (
     employee_no INT,
@@ -13,7 +13,7 @@ create table employee (
     department_name VARCHAR(50),
     hourly_rate NUMERIC(5,2),
     primary key (employee_no)
-)
+);
 
 create table assignment (
     project_code VARCHAR(10),
@@ -21,7 +21,7 @@ create table assignment (
     primary key (project_code, employee_no),
     foreign key (project_code) references project(project_code),
     foreign key (employee_no) references employee(employee_no)
-)
+);
 
 INSERT INTO project VALUES 
 ('PC010', 'Reservation System', 'Mr. Ajay', 120500),
