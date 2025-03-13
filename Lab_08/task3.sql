@@ -1,12 +1,10 @@
-explain select f.flight_no
-from tickets t
-join ticket_flights tf on t.ticket_no = tf.ticket_no
-join flights f on tf.flight_id = f.flight_id
-where t.passenger_name like 'M%';
+explain analyze select f.flight_no
+from tickets t, ticket_flights tf, flights f
+where t.ticket_no = tf.ticket_no and tf.flight_id = f.flight_id and t.passenger_name like 'M%';
 
--- 64794.12
+-- Execution Time: 662.671 ms
 
 create index passenger_name_idx on tickets (passenger_name)
 	where passenger_name like 'M%';
 
--- 61170.03
+-- Execution Time: 549.499 ms (the result is not constant)
