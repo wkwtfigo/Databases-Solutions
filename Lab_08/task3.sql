@@ -8,3 +8,7 @@ create index passenger_name_idx on tickets (passenger_name)
 	where passenger_name like 'M%';
 
 -- Execution Time: 549.499 ms (the result is not constant)
+-- using gin gives the same result as a btree
+
+-- index of (ticket_no, flight_id) in ticket_flights gives execution time worse than the first version
+-- index of (flight_id) is also not useful
