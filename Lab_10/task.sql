@@ -57,13 +57,15 @@ declare
 	conversion_rate numeric(10, 6);
 	converted_amount numeric(15, 2);
 begin
+	-- accounts have the same currency
 	if currency_from = currency_to then
 		converted_amount := amount;
 	else
 		select c.conversion_rate into conversion_rate
 		from conversion_rates c
 		where c.currency_from = currency_from and c.currency_to = currency_to;
-	
+
+		-- conversion rate between accounts currencies is not found
 		if conversion_rate is null then
 			raise exception 'Conversion rate not found for % and %', currency_from, currency_to;
 		end if;
@@ -80,8 +82,31 @@ begin
 		set balance = balance + converted_amount
 		where id = account_to;
 
+		-- add new transaction into the table
 		insert into transactions (account_from, account_to, amount, currency_from, currency_to, conversion_rate, converted_amount)
         values (sender_id, receiver_id, amount, from_currency, to_currency, COALESCE(conversion_rate, 1), converted_amount);
 	end;
+end;
+$$ language plpgsql;
+
+create or replace function rollback_last_transaction returns void as $$
+declare 
+	last_tr transactions%ROWTYPE;
+begin
+	select * into last_tr from transactions order by transaction_time desc limit 1;
+
+	if not found then
+		raise exception 'No transactions found to rollback';
+	end if;
+
+	update accounts
+	set balance = balance + last_tr.amount
+	where id = last_tr.account_from;
+
+	update accounts
+	set balance = balance - last_tr.converted_amount
+	where id = last_tr.account_to;
+
+	delete from transactions where id = last_tr.id;
 end;
 $$ language plpgsql;
