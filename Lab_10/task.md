@@ -1,29 +1,45 @@
--- TASK 1: create table accounts
+## Lab 10
+### Task 1: Create Table `accounts`
+
+We begin by creating the `accounts` table to store information about accounts, including the owner's name, balance, and currency.
+
+```sql
 CREATE TABLE accounts (
     id SERIAL PRIMARY KEY,
     owner_name VARCHAR(100) NOT NULL,
     balance NUMERIC(15,2) NOT NULL CHECK (balance >= 0),
     currency VARCHAR(3) NOT NULL CHECK (currency IN ('USD', 'EUR', 'RUB'))
 );
+```
 
--- insert into table accounts 3 accounts
+```sql
 INSERT INTO accounts (owner_name, balance, currency) VALUES
 ('John Doe', 1500.00, 'USD'),
 ('Alice Smith', 1300.00, 'EUR'),
 ('Ivan Petrov', 100000.00, 'RUB');
+```
 
-select * from accounts;
+| id | owner_name  | balance    | currency |
+|----|--------------------------|----------|-----------|
+| 1  | John Doe    | 1500.00    | USD      |
+| 2  | Alice Smith | 1300.00    | EUR      |
+| 3  | Ivan Petrov | 1000000.00 | RUB      |
 
--- TASK 2: create table of currency conversion rates
-create table conversion_rates (
-	id serial primary key,
-	currency_from VARCHAR(3) NOT NULL CHECK (currency_from IN ('USD', 'EUR', 'RUB')),
-	currency_to VARCHAR(3) NOT NULL CHECK (currency_to IN ('USD', 'EUR', 'RUB')),
-	conversion_rate NUMERIC(10,6) NOT NULL CHECK (conversion_rate > 0),
-	unique (currency_from, currency_to)
-)
+### Task 2: Create table `conversion_rates`
 
--- insert needed data
+We create a `conversion_rates` table to store currency conversion rates between different currencies (USD, EUR, and RUB).
+
+```sql
+CREATE TABLE conversion_rates (
+    id SERIAL PRIMARY KEY,
+    currency_from VARCHAR(3) NOT NULL CHECK (currency_from IN ('USD', 'EUR', 'RUB')),
+    currency_to VARCHAR(3) NOT NULL CHECK (currency_to IN ('USD', 'EUR', 'RUB')),
+    conversion_rate NUMERIC(10,6) NOT NULL CHECK (conversion_rate > 0),
+    UNIQUE (currency_from, currency_to)
+);
+```
+
+```sql
 INSERT INTO conversion_rates (currency_from, currency_to, conversion_rate) VALUES
 ('USD', 'EUR', 0.92),
 ('EUR', 'USD', 1.09),
@@ -31,27 +47,40 @@ INSERT INTO conversion_rates (currency_from, currency_to, conversion_rate) VALUE
 ('RUB', 'USD', 0.013),
 ('EUR', 'RUB', 81.00),
 ('RUB', 'EUR', 0.012);
+```
 
-select * from conversion_rates;
+| id | currency_from | currency_to | conversion_rate |
+|----|--------------------------|----------|-----------|
+| 1  | USD | EUR | 0.920000 |
+| 2  | EUR | USD | 1.090000 |
+| 3  | USD | RUB | 75.000000 |
+| 4  | RUB | USD | 0.013000 |
+| 5  | EUR | RUB | 81.000000 |
+| 6  | RUB | EUR | 0.012000 |
 
--- TASK 3: create table for transactions
--- include e Currency From, Currency To, and Conversion Rate
--- populate the table with necessary conversion rates between USD, EUR, and RUB
-create table transactions (
-	id serial primary key,
-	account_from int not null, -- sender
-	account_to int not null, -- receiver
-	amount NUMERIC(15,2) NOT NULL CHECK (amount > 0), -- amount in sender's currency
-	currency_from VARCHAR(3) NOT NULL CHECK (currency_from IN ('USD', 'EUR', 'RUB')),
-	currency_to VARCHAR(3) NOT NULL CHECK (currency_to IN ('USD', 'EUR', 'RUB')),
-	conversion_rate NUMERIC(10,6) NOT NULL, -- from conversion_rates
-	converted_amount numeric(15,2) not null,
-	transaction_time TIMESTAMP DEFAULT NOW(),
-	FOREIGN KEY (account_from) REFERENCES accounts(id),
+### Task 3: Create table `transactions` and Define `perform_transaction` function
+
+We create a `transactions` table to log each transaction, including the sender, receiver, the amount, currency used, conversion rate, and the converted amount.
+
+```sql
+CREATE TABLE transactions (
+    id SERIAL PRIMARY KEY,
+    account_from INT NOT NULL, -- sender
+    account_to INT NOT NULL, -- receiver
+    amount NUMERIC(15,2) NOT NULL CHECK (amount > 0), -- amount in sender's currency
+    currency_from VARCHAR(3) NOT NULL CHECK (currency_from IN ('USD', 'EUR', 'RUB')),
+    currency_to VARCHAR(3) NOT NULL CHECK (currency_to IN ('USD', 'EUR', 'RUB')),
+    conversion_rate NUMERIC(10,6) NOT NULL, -- from conversion_rates
+    converted_amount NUMERIC(15,2) NOT NULL,
+    transaction_time TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (account_from) REFERENCES accounts(id),
     FOREIGN KEY (account_to) REFERENCES accounts(id)
-)
+);
+```
 
--- TASK 3: return the updated balance for all accounts
+`perform_transaction` function updates the balance of the sender and receiver accounts, based on the conversion rate, and logs the transaction.
+
+```sql
 create or replace function perform_transaction (
 	account_from int,
 	account_to int,
@@ -102,17 +131,27 @@ begin
 	select account_id_from, updated_balance_from, account_id_to, updated_balance_to;
 end;
 $$ language plpgsql;
+```
 
+#### Example
+
+```sql
 -- T1: Account 1 (USD) sends 200 USD to Account 2 (EUR)
 select * from perform_transaction(1, 2, 200, 'USD', 'EUR');
-	
--- T2: Account 2 (EUR) sends 300 EUR to Account 3 (RUB)
-select * from perform_transaction(2, 3, 300, 'EUR', 'RUB');
-	
--- T3: Account 3 (RUB) sends 1000 RUB to Account 1 (USD)
-select * from perform_transaction(3, 1, 1000, 'RUB', 'USD');
+```
+Returned values:
+| id | account_id_from | updated_balance_from | account_id_to | updated_balance_to |
+|----|--------------------------|----------|-----------|-----|
+| 1  | 1 | 1300 | 2 | 1484 |
 
--- TASK 3: rollback mechanism for the last transaction
+Table `transactions`:
+| id | account_from | account_to | amount | currency_from | currency_to | conversion_rate | converted_amount | transaction_time|
+|----|---------------------------|--------|-----------|-----|------|------|-------|------|
+| 1  | 1            | 2          | 200.00 | USD | EUR | 0.920000 | 184 | 2025-03-27 14:13:10.69264 |
+
+We also create a rollback mechanism for the last transaction.
+
+```sql
 create or replace function rollback_last_transaction() returns void as $$
 declare 
 	last_tr transactions%ROWTYPE;
@@ -134,29 +173,44 @@ begin
 	delete from transactions where id = last_tr.id;
 end;
 $$ language plpgsql;
+```
 
+### Task 4: Add bank country and fees account
 
--- TASK 4: add a field for BankCountry (options: USA, Germany, Russia)
-alter table accounts 
-add column bank_country VARCHAR(10) CHECK (bank_country IN ('USA', 'Germany', 'Russia', 'NULL'));
+We add a column for `bank_country` in the `accounts` table and populate it for the existing accounts.
 
-update accounts 
-set bank_country = 'USA' 
-where id = 1;
+```sql
+ALTER TABLE accounts 
+ADD COLUMN bank_country VARCHAR(10) CHECK (bank_country IN ('USA', 'Germany', 'Russia', 'NULL'));
 
-update accounts 
-set bank_country = 'Germany' 
-where id = 2;
+UPDATE accounts 
+SET bank_country = 'USA' 
+WHERE id = 1;
 
-update accounts 
-set bank_country = 'Russia' 
-where id = 3;
+UPDATE accounts 
+SET bank_country = 'Germany' 
+WHERE id = 2;
 
--- TASK 4: fees should be stored in a new record in accounts table
-insert into accounts (owner_name, balance, currency, bank_country)
-values ('Fees Account', 0, 'RUB', 'Russia');
+UPDATE accounts 
+SET bank_country = 'Russia' 
+WHERE id = 3;
+```
 
--- TASK 5: international transactions have a variable fee based on the sander's country
+### Task 5:
+
+We insert a new account for collected fees.
+
+```sql
+INSERT INTO accounts (owner_name, balance, currency, bank_country)
+VALUES ('Fees Account', 0, 'RUB', 'Russia');
+```
+Variable fees do not have a separate table.
+
+### Task 6
+
+We create the `perform_transaction_with_fee` function, which calculates a variable fee based on the sender's country. The fee is collected into a separate account.
+
+```sql
 create or replace function perform_transaction_with_fee (
 	account_from int,
 	account_to int,
@@ -248,17 +302,11 @@ begin
 	select account_id_from, updated_balance_from, account_id_to, updated_balance_to, fees_collected;
 end;
 $$ language plpgsql;
+```
 
--- T1: Account 1 (USA, USD) sends 200 USD to Account 2 (Germany, EUR)
-select * from perform_transaction_with_fee(1, 2, 200, 'USD', 'EUR');
+We also create a rollback mechanism for the last transaction.
 
--- T2: Account 2 (Germany, EUR) sends 300 EUR to Account 3 (Russia, RUB)
-select * from perform_transaction_with_fee(2, 3, 300, 'EUR', 'RUB');
-
--- T3: Account 3 (Russia, RUB) sends 1000 RUB to Account 1 (USA, USD)
-select * from perform_transaction_with_fee(3, 1, 1000, 'RUB', 'USD');
-
--- TASK 6: rollback mechanism
+```sql
 create or replace function rollback_last_transaction_with_fee() returns void as $$
 declare
 	last_tr transactions%ROWTYPE;
@@ -301,3 +349,4 @@ begin
 	delete from transactions where id = last_tr.id;
 end;
 $$ language plpgsql;
+```
