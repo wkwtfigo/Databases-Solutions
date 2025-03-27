@@ -271,13 +271,7 @@ begin
     end if;
 
 	update accounts
-    set balance = balance + last_tr.amount + 
-        case
-            when last_tr.currency_from = 'USD' then 25 * (select conversion_rate from conversion_rates where currency_from = 'USD' and currency_to = 'RUB')
-            when last_tr.currency_from = 'EUR' then 20 * (select conversion_rate from conversion_rates where currency_from = 'EUR' and currency_to = 'RUB')
-            when last_tr.currency_from = 'RUB' then 1500
-            else 0
-        end
+    set balance = balance + last_tr.amount
     where id = last_tr.account_from;
 
 	update accounts

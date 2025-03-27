@@ -1,4 +1,6 @@
 ## Lab 10
+<hr>
+
 ### Task 1: Create Table `accounts`
 
 We begin by creating the `accounts` table to store information about accounts, including the owner's name, balance, and currency.
@@ -138,16 +140,34 @@ $$ language plpgsql;
 ```sql
 -- T1: Account 1 (USD) sends 200 USD to Account 2 (EUR)
 select * from perform_transaction(1, 2, 200, 'USD', 'EUR');
+
+-- T2: Account 2 (EUR) sends 300 EUR to Account 3 (RUB)
+select * from perform_transaction(2, 3, 300, 'EUR', 'RUB');
+	
+-- T3: Account 3 (RUB) sends 1000 RUB to Account 1 (USD)
+select * from perform_transaction(3, 1, 1000, 'RUB', 'USD');
 ```
-Returned values:
-| id | account_id_from | updated_balance_from | account_id_to | updated_balance_to |
-|----|--------------------------|----------|-----------|-----|
-| 1  | 1 | 1300 | 2 | 1484 |
+Returned values for T1:
+| account_id_from | updated_balance_from | account_id_to | updated_balance_to |
+|----|--------------------------|----------|-----------|
+| 1 | 1300.00 | 2 | 1484.00 |
+
+Returned values for T2:
+| account_id_from | updated_balance_from | account_id_to | updated_balance_to |
+|----|--------------------------|----------|-----|
+| 2 | 1184.00 | 3 | 124300.00 |
+
+Returned values for T3:
+| account_id_from | updated_balance_from | account_id_to | updated_balance_to |
+|----|--------------------------|--------------------|-----|
+| 3 | 123300.00 | 1 | 1313.00 |
 
 Table `transactions`:
 | id | account_from | account_to | amount | currency_from | currency_to | conversion_rate | converted_amount | transaction_time|
 |----|---------------------------|--------|-----------|-----|------|------|-------|------|
-| 1  | 1            | 2          | 200.00 | USD | EUR | 0.920000 | 184 | 2025-03-27 14:13:10.69264 |
+| 1  | 1 | 2 | 200.00 | USD | EUR | 0.920000 | 184 | 2025-03-27 14:13:10.69264 |
+| 2  | 2 | 3 | 300.00 | EUR | RUB | 81.000000 | 24300.00 | 2025-03-27 22:48:27.694874 |
+| 3  | 3 | 1 | 1000.00 | RUB | USD | 0.013000 | 13.00 | 2025-03-27 22:49:27.417815 |
 
 We also create a rollback mechanism for the last transaction.
 
@@ -196,6 +216,12 @@ SET bank_country = 'Russia'
 WHERE id = 3;
 ```
 
+| id | owner_name  | balance    | currency | bank_country|
+|----|-------------|------------|----------|-----------|
+| 1  | John Doe    | 1500.00    | USD      | USA |
+| 2  | Alice Smith | 1300.00    | EUR      | Germany |
+| 3  | Ivan Petrov | 1000000.00 | RUB      | Russia |
+
 ### Task 5:
 
 We insert a new account for collected fees.
@@ -204,7 +230,14 @@ We insert a new account for collected fees.
 INSERT INTO accounts (owner_name, balance, currency, bank_country)
 VALUES ('Fees Account', 0, 'RUB', 'Russia');
 ```
-Variable fees do not have a separate table.
+Variable fees do not have a separate table. We assume that all fees will be calculated in rubles. So, the country is Russia.
+
+| id | owner_name  | balance    | currency | bank_country|
+|----|--------------------------|----------|-----------|
+| 1  | John Doe    | 1500.00    | USD      | USA |
+| 2  | Alice Smith | 1300.00    | EUR      | Germany |
+| 3  | Ivan Petrov | 1000000.00 | RUB      | Russia |
+| 4 | Fees Account | 0.00 | RUB | Russia |
 
 ### Task 6
 
@@ -304,6 +337,33 @@ end;
 $$ language plpgsql;
 ```
 
+#### Example
+
+```sql
+-- T1: Account 1 (USA, USD) sends 200 USD to Account 2 (Germany, EUR)
+select * from perform_transaction_with_fee(1, 2, 200, 'USD', 'EUR');
+
+-- T2: Account 2 (Germany, EUR) sends 300 EUR to Account 3 (Russia, RUB)
+select * from perform_transaction_with_fee(2, 3, 300, 'EUR', 'RUB');
+
+-- T3: Account 3 (Russia, RUB) sends 1000 RUB to Account 1 (USA, USD)
+select * from perform_transaction_with_fee(3, 1, 1000, 'RUB', 'USD');
+```
+Returned values for T1:
+| account_id_from | updated_balance_from | account_id_to | updated_balance_to | fees_collected |
+|----|--------------------------|----------|-----------|-----|
+| 1 | 913.00 | 2 | 1506.00 | 1875.00 |
+
+Returned values for T2:
+| account_id_from | updated_balance_from | account_id_to | updated_balance_to | fees_collected |
+|----|--------------------------|----------|-----------|-----|
+| 2 | 1206.00 | 3 | 145980.00 | 3495.00 |
+
+Returned values for T3:
+| account_id_from | updated_balance_from | account_id_to | updated_balance_to | fees_collected |
+|----|--------------------------|----------|-----------|-----|
+| 3 | 144980.00 | 1 | 906.50 | 4995.00 |
+
 We also create a rollback mechanism for the last transaction.
 
 ```sql
@@ -319,13 +379,7 @@ begin
     end if;
 
 	update accounts
-    set balance = balance + last_tr.amount + 
-        case
-            when last_tr.currency_from = 'USD' then 25 * (select conversion_rate from conversion_rates where currency_from = 'USD' and currency_to = 'RUB')
-            when last_tr.currency_from = 'EUR' then 20 * (select conversion_rate from conversion_rates where currency_from = 'EUR' and currency_to = 'RUB')
-            when last_tr.currency_from = 'RUB' then 1500
-            else 0
-        end
+    set balance = balance + last_tr.amount
     where id = last_tr.account_from;
 
 	update accounts
