@@ -233,7 +233,7 @@ VALUES ('Fees Account', 0, 'RUB', 'Russia');
 Variable fees do not have a separate table. We assume that all fees will be calculated in rubles. So, the country is Russia.
 
 | id | owner_name  | balance    | currency | bank_country|
-|----|--------------------------|----------|-----------|
+|----|-------------|------------|----------|-----------|
 | 1  | John Doe    | 1500.00    | USD      | USA |
 | 2  | Alice Smith | 1300.00    | EUR      | Germany |
 | 3  | Ivan Petrov | 1000000.00 | RUB      | Russia |
