@@ -1,0 +1,80 @@
+[
+    {
+        "storeLocation": "London",
+        "couponUsed": true,
+        "purchaseMethod": "In store",
+        "saleDate": "2023-11-01T10:15:00",
+        "customer": {
+            "gender": "M",
+            "age": 65,
+            "email": "london.shopper@sample.net",
+            "satisfaction": 4
+        },
+        "items": [
+            {
+                "name": "binder",
+                "tags": [
+                    "school",
+                    "general",
+                    "organization"
+                ],
+                "price": "10.99",
+                "quantity": 5
+            },
+            {
+                "name": "pens",
+                "tags": [
+                    "writing",
+                    "office",
+                    "school",
+                    "stationary"
+                ],
+                "price": "8.49",
+                "quantity": 2
+            }
+        ]
+    },
+    {
+        "storeLocation": "New York",
+        "couponUsed": false,
+        "purchaseMethod": "Phone",
+        "saleDate": "2023-11-02T16:45:30",
+        "customer": {
+            "gender": "F",
+            "age": 38,
+            "email": "ny.customer@sample.org",
+            "satisfaction": 3
+        },
+        "items": [
+            {
+                "name": "backpack",
+                "tags": [
+                    "school",
+                    "travel",
+                    "kids"
+                ],
+                "price": "55.00",
+                "quantity": 1
+            },
+            {
+                "name": "printer paper",
+                "tags": [
+                    "office",
+                    "stationary"
+                ],
+                "price": "45.50",
+                "quantity": 3
+            },
+            {
+                "name": "envelopes",
+                "tags": [
+                    "stationary",
+                    "office",
+                    "general"
+                ],
+                "price": "12.00",
+                "quantity": 10
+            }
+        ]
+    }
+]
